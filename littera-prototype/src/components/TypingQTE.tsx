@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Character, Spell } from "../types";
 import { resolveAttack } from "../battleLogic";
 import { timeLimitForWord } from "../battleLogic";
-import { countAffinityLetters } from "../data/characters";
+import { getAffinityIndices } from "../data/characters";
 import type { AttackResult } from "../types";
 
 interface TypingQTEProps {
@@ -78,7 +78,9 @@ export default function TypingQTE({ character, spell, onComplete }: TypingQTEPro
     }
   };
 
-  const affinityCount = countAffinityLetters(spell.word, character.letter);
+  const affinityIndices = getAffinityIndices(spell.word, character.letter);
+  const affinitySet = new Set(affinityIndices);
+  const affinityCount = affinityIndices.length;
   const pctTime = Math.max(0, Math.min(100, (remainingMs / totalTime) * 100));
   const urgent = pctTime <= 30;
 
@@ -88,10 +90,20 @@ export default function TypingQTE({ character, spell, onComplete }: TypingQTEPro
         Digite a palavra para conjurar <strong>{spell.word}</strong>
       </div>
 
+      {affinityCount > 0 && (
+        <div className="affinity-badge">
+          <span className="affinity-badge__icon">✦</span>
+          <span className="affinity-badge__letter">
+            {character.letter} ×{affinityCount}
+          </span>
+          <span className="affinity-badge__bonus">+{affinityCount * 10}% DANO</span>
+        </div>
+      )}
+
       <div className="qte__word" aria-hidden>
         {spell.word.split("").map((char, i) => {
           const typedChar = typed[i];
-          const isAffinity = char.toUpperCase() === character.letter.toUpperCase();
+          const isAffinity = affinitySet.has(i);
           let state = "pending";
           if (typedChar !== undefined) {
             state = typedChar === char ? "correct" : "wrong";
@@ -126,12 +138,6 @@ export default function TypingQTE({ character, spell, onComplete }: TypingQTEPro
           className={`qte__timer-fill ${urgent ? "qte__timer-fill--urgent" : ""}`}
           style={{ width: `${pctTime}%` }}
         />
-      </div>
-
-      <div className="qte__hint">
-        {affinityCount} ocorrência{affinityCount !== 1 ? "s" : ""} de{" "}
-        <strong>{character.letter}</strong> · bônus de afinidade +
-        {affinityCount * 10}% de dano
       </div>
     </div>
   );

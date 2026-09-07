@@ -13,7 +13,7 @@ interface FloatingText {
   id: number;
   text: string;
   side: "player" | "enemy";
-  kind: "damage" | "grade" | "crit" | "miss";
+  kind: "damage" | "grade" | "crit" | "miss" | "affinity";
 }
 
 let floatId = 0;
@@ -32,7 +32,7 @@ export default function BattleScreen({ character, enemy }: BattleScreenProps) {
     setFloatingTexts((prev) => [...prev, { ...f, id }]);
     const t = window.setTimeout(() => {
       setFloatingTexts((prev) => prev.filter((x) => x.id !== id));
-    }, 1100);
+    }, 1300);
     timeouts.current.push(t);
   };
 
@@ -57,27 +57,44 @@ export default function BattleScreen({ character, enemy }: BattleScreenProps) {
     } else {
       const newHp = Math.max(0, enemyHp - result.damage);
       setEnemyHp(newHp);
+
+      // Sequência de feedback: grade -> de onde veio o bônus (afinidade) ->
+      // crítico (se houver) -> número final de dano. Cada etapa explica a
+      // próxima, pra deixar claro por que essa palavra causou esse dano.
       pushFloat({ text: result.grade, side: "enemy", kind: "grade" });
-      const dmgTimeout = window.setTimeout(() => {
-        pushFloat({ text: `-${result.damage}`, side: "enemy", kind: "damage" });
-      }, 250);
-      timeouts.current.push(dmgTimeout);
+
+      if (result.affinityCount > 0) {
+        const affinityTimeout = window.setTimeout(() => {
+          pushFloat({
+            text: `${character.letter} ×${result.affinityCount} · +${result.affinityCount * 10}%`,
+            side: "enemy",
+            kind: "affinity",
+          });
+        }, 300);
+        timeouts.current.push(affinityTimeout);
+      }
 
       if (result.isCritical) {
         const critTimeout = window.setTimeout(() => {
-          pushFloat({ text: "CRITICAL!", side: "enemy", kind: "crit" });
-        }, 450);
+          pushFloat({ text: "CRÍTICO!", side: "enemy", kind: "crit" });
+        }, 550);
         timeouts.current.push(critTimeout);
       }
 
+      const dmgTimeout = window.setTimeout(() => {
+        pushFloat({ text: `-${result.damage}`, side: "enemy", kind: "damage" });
+      }, 800);
+      timeouts.current.push(dmgTimeout);
+
       setLog(
-        `${result.grade}${result.isCritical ? " CRITICAL" : ""} — ${result.damage} de dano (${
-          result.affinityCount
-        }x afinidade ${character.letter}).`
+        `${result.grade}${result.isCritical ? " CRÍTICO" : ""} — ${result.damage} de dano` +
+          (result.affinityCount > 0
+            ? ` (${character.letter} ×${result.affinityCount}, +${result.affinityCount * 10}% de afinidade)`
+            : "")
       );
 
       if (newHp <= 0) {
-        const victoryTimeout = window.setTimeout(() => setPhase("VICTORY"), 900);
+        const victoryTimeout = window.setTimeout(() => setPhase("VICTORY"), 1300);
         timeouts.current.push(victoryTimeout);
         return;
       }
@@ -86,7 +103,7 @@ export default function BattleScreen({ character, enemy }: BattleScreenProps) {
     const enemyTurnTimeout = window.setTimeout(() => {
       setPhase("ENEMY_TURN");
       runEnemyTurn();
-    }, 1000);
+    }, 1400);
     timeouts.current.push(enemyTurnTimeout);
   };
 

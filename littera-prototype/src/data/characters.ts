@@ -20,11 +20,22 @@ export const TRAINING_DUMMY: Enemy = {
   attackMax: 16,
 };
 
-// Contagem de ocorrências (case-insensitive) da letra de afinidade em uma palavra.
-export function countAffinityLetters(word: string, letter: string): number {
+// Índices (case-insensitive) onde a letra de afinidade aparece na palavra.
+// Fonte única de verdade: qualquer lugar que precise saber "onde" ou "quantas"
+// vezes a afinidade aparece deve passar por aqui.
+export function getAffinityIndices(word: string, letter: string): number[] {
   const target = letter.toUpperCase();
-  return word
+  const indices: number[] = [];
+  word
     .toUpperCase()
     .split("")
-    .filter((char) => char === target).length;
+    .forEach((char, i) => {
+      if (char === target) indices.push(i);
+    });
+  return indices;
+}
+
+// Contagem de ocorrências da letra de afinidade em uma palavra.
+export function countAffinityLetters(word: string, letter: string): number {
+  return getAffinityIndices(word, letter).length;
 }
